@@ -29,6 +29,8 @@ INSTALLED_APPS = [
     'chat',
     'handGame',
     'imageGame',
+    'user',
+    'room',
 ]
 
 MIDDLEWARE = [
