@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'handGame',
     'imageGame',
     'user',
+    'room',
 ]
 
 MIDDLEWARE = [
