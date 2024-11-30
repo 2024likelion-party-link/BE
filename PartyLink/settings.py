@@ -129,7 +129,11 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [(os.environ.get('REDIS_HOST', 'localhost'), 6379)],
+            "hosts": [("127.0.0.1", 6379)],  # Redis 서버 호스트와 포트
         },
     },
 }
+
+# Redis 설정
+REDIS_HOST = 'localhost'  # Redis 서버의 호스트 (로컬에서 실행 중인 경우 localhost)
+REDIS_PORT = 6379         # Redis 기본 포트
