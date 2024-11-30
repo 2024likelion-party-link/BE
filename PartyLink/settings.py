@@ -20,6 +20,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -34,8 +35,6 @@ INSTALLED_APPS = [
     'room',
     'channels',
     'corsheaders',
-    'channels',
-    'daphne',
 ]
 
 MIDDLEWARE = [
@@ -123,7 +122,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-ASGI_APPLICATION = 'config.asgi.application'
+ASGI_APPLICATION = 'PartyLink.asgi.application'
 
 
 CHANNEL_LAYERS = {
