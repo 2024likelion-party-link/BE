@@ -1,14 +1,12 @@
 from rest_framework import serializers
-from .models import Game, PlayerState
+from .models import HandGame, Hand
 
-class GameSerializer(serializers.ModelSerializer):
+class HandGameSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Game
-        fields = '__all__'
+        model = HandGame
+        fields = ['id', 'room', 'current_turn', 'is_active', 'created_at']
 
-class PlayerStateSerializer(serializers.ModelSerializer):
-    participant = serializers.CharField(source="participant.nickname")
-
+class HandStateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PlayerState
-        fields = ['participant', 'fingers', 'is_active']
+        model = Hand
+        fields = ['participant', 'fingers']
