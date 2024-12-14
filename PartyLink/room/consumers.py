@@ -76,7 +76,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
 
     async def add_participant(self, nickname, user_id, is_host):
         participants_key = f"room:{self.room_id}:participants"
-        redis_client.lpush(participants_key, f"{user_id}:{nickname}:{is_host}")
+        redis_client.rpush(participants_key, f"{user_id}:{nickname}:{is_host}")
         redis_client.expire(participants_key, 3600)
 
     async def get_participants(self):
