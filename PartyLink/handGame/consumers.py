@@ -99,6 +99,18 @@ class HandGameConsumer(AsyncWebsocketConsumer):
             for p in participants
         ]
     
+    async def participants(self):
+        participants_key = f"room:{self.room_id}:participants"
+        participants = redis_client.lrange(participants_key, 0, -1)
+        return [
+            {
+                "userId": p.decode("utf-8").split(":")[0],
+                "nickname": p.decode("utf-8").split(":")[1],
+                "is_host": p.decode("utf-8").split(":")[2] == "True",
+                "fingers": p.decode("utf-8").split(":")[3]
+            }
+            for p in participants
+        ]
     # 참가자들 목록 랜덤으로, 손가락 개수 초기화
     async def randomize_turn_order(self):
         participants = await self.get_participants()
@@ -177,24 +189,79 @@ class HandGameConsumer(AsyncWebsocketConsumer):
 
         asyncio.create_task(self.move_to_next_turn(delay=15))
 
+    async def game_end(self, event):
+        loser = event["loser"]
+        ranking = event["ranking"]
+        message = event["message"]
+    
+    # 게임 종료 메시지 전송 (패배자와 순위 포함)
+        await self.send(json.dumps(
+        {
+            "type": "game_end",
+            "loser": loser,
+            "ranking": ranking,
+            "message": message
+        },
+        ensure_ascii=False
+        ))
+
     async def check_game_end(self):
-        participants = await self.get_participants()
-        loser = next((p for p in participants if p['fingers'] == 0), None)
+        participants_key = f"room:{self.room_id}:participants"
+    
+    # Redis에서 참가자 리스트를 가져옵니다.
+        participants = redis_client.lrange(participants_key, 0, -1)
+
+    # 각 참가자 정보를 JSON 형식으로 변환
+        participants = [json.loads(p) for p in participants]
+
+    # fingers가 0인 참가자를 찾습니다.
+        loser = next((p for p in participants if p.get('fingers', 0) == 0), None)
+
+    # 손가락 개수 기준으로 참가자 정렬 (내림차순)
+        sorted_participants = sorted(participants, key=lambda p: p.get('fingers', 0), reverse=True)
+
+    # 순위 정보 생성
+        ranking = [
+        {
+            "rank": idx + 1,
+            "userId": p["userId"],
+            "nickname": p["nickname"],
+            "fingers": p["fingers"]
+        }
+            for idx, p in enumerate(sorted_participants)
+        ]
 
         if loser:
+            print(f"Loser found: {loser}")  # 디버깅 출력
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "game_end",
-                    "loser": loser,
-                    "message": f"Game has ended! Loser is {loser['nickname']}."
-                }
-            )
+                    "loser": {
+                        "userId": loser['userId'],
+                        "nickname": loser['nickname'],
+                    "fingers": loser['fingers']
+                },
+                "ranking": ranking,
+                "message": f"Game has ended! Loser is {loser['nickname']}."
+            }
+        )
+            # # 게임 종료 처리
+            # self.end_game()
 
-    async def game_end(self, event):
-        loser = event["loser"]
-        message = event["message"]
-        await self.send(json.dumps({"type": "game_end", "loser": loser, "message": message}, ensure_ascii=False))
+        else:
+            print("No loser found yet.")
+
+    # def end_game(self):
+    # # 게임이 끝났음을 나타내는 데이터 정리
+    #     print(f"Ending game for room {self.room_id}")
+    
+    # # Redis에서 게임 참가자 목록 삭제
+    #     participants_key = f"room:{self.room_id}:participants"
+    #     redis_client.delete(participants_key)
+    
+    # # 추가적인 데이터 정리 작업 (예: 점수 기록, 기록 저장 등)
+    #     self.cleanup_room()
 
     async def handle_fold(self, data):
         # HTTP 헤더에서 Cookie 가져오기
@@ -224,6 +291,8 @@ class HandGameConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {"type": "update_participants", "participants": participants}
         )
+
+        await self.check_game_end()
 
 
     async def handle_undo_fold(self, data):
