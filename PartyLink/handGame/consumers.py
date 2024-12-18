@@ -46,19 +46,19 @@ class HandGameConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         message_type = data.get("type")
 
-        if message_type == "start":
+        if message_type == "start": # 게임 시작
             await self.start(data)
-        elif message_type == "fold":
+        elif message_type == "fold": # 손가락 접기
             await self.handle_fold(data)
-        elif message_type == "undo_fold":
+        elif message_type == "undo_fold": # 손가락 펴기
             await self.handle_undo_fold(data)
-        elif message_type == "chat":
+        elif message_type == "chat": #  채팅 보내기기
             await self.make_chat(data)
-        elif message_type == "chat_list":
+        elif message_type == "chat_list": # 채팅 목록
             await self.chat_list()
-        elif message_type == "next_turn":
+        elif message_type == "next_turn": # 다음 차례 사람으로 넘어가기
             await self.move_to_next_turn()
-        elif message_type == "update_participants":
+        elif message_type == "update_participants": # 참가자 업데이트
             await self.update_participants(data)
         else:
             await self.send_error(f"Unknown message type: {message_type}")
