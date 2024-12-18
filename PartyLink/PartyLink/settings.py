@@ -161,3 +161,10 @@ CACHES = {
     }
 }
 
+
+# 배포 환경에서 쿠키 사용할 떄 HTTPS
+# SESSION_COOKIE_SECURE = True  # HTTPS 환경에서만 쿠키 전송
+# CSRF_COOKIE_SECURE = True
+
+
+

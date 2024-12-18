@@ -1,3 +1,4 @@
+from http.cookies import SimpleCookie
 import random
 from django.urls import path
 from channels.routing import ProtocolTypeRouter, URLRouter
@@ -12,10 +13,16 @@ redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 class HandGameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # 쿠키에서 user_id 가져오기
-        user_id = self.scope['cookies'].get('user_id')
+        # HTTP 헤더에서 Cookie 가져오기
+        headers = dict(self.scope["headers"])
+        cookie_header = headers.get(b'cookie', b'').decode()
+
+        # 쿠키 파싱
+        cookies = SimpleCookie(cookie_header)
+        user_id = cookies.get('user_id').value if 'user_id' in cookies else None
+
         if not user_id:
-            await self.send_error("User ID not found in cookies.")
+            await self.send(json.dumps({"type": "error", "message": "User ID not found in cookies."}, ensure_ascii=False))
             await self.close()
             return
 
@@ -27,6 +34,7 @@ class HandGameConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
+        # 참가자 업데이트
         participants = await self.get_participants()
         await self.send(json.dumps({"type": "participants_update", "participants": participants}, ensure_ascii=False))
 
@@ -39,6 +47,8 @@ class HandGameConsumer(AsyncWebsocketConsumer):
 
         if message_type == "start":
             await self.start(data)
+        elif message_type == "fold":
+            await self.handle_fold(data)
         else:
             await self.send_error(f"Unknown message type: {message_type}")
 
@@ -46,9 +56,9 @@ class HandGameConsumer(AsyncWebsocketConsumer):
         participants = await self.get_participants()
         started_key = f"handgame:{self.room_id}:started"
 
-        # if len(participants) < 5:
-        #     await self.send_error("Not enough participants to start the game. 5 participants are required.")
-        #     return
+        if len(participants) < 5:
+            await self.send_error("Not enough participants to start the game. 5 participants are required.")
+            return
 
         if redis_client.get(started_key):
             await self.send_error("Game already started.")
@@ -150,7 +160,7 @@ class HandGameConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {"type": "update_participants", "participants": participants}
         )
-
+    
     async def update_participants(self, event):
         participants = event["participants"]
         await self.send(json.dumps({"type": "participants_update", "participants": participants}, ensure_ascii=False))
