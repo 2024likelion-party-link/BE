@@ -19,7 +19,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({
             "type": "participants_update",
             "participants": participants
-        }))
+        } , ensure_ascii=False))
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
@@ -50,7 +50,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
             )
 
             # 참가자에게 자신 정보 전송
-            await self.send(json.dumps({"type": "self_id", "userId": user_id}))
+            await self.send(json.dumps({"type": "self_id", "userId": user_id}, ensure_ascii=False))
 
         elif message_type == "select_game":
             game_id = data.get("game_id")
@@ -72,7 +72,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
 
     async def update_participants(self, event):
         participants = event["participants"]
-        await self.send(json.dumps({"type": "participants_update", "participants": participants}))
+        await self.send(json.dumps({"type": "participants_update", "participants": participants}, ensure_ascii=False))
 
     async def game_selected(self, event):
         game_id = event["game_id"]
