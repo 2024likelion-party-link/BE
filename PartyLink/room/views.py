@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 import redis
+import uuid
 
 # Redis 설정
 redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
@@ -17,22 +18,24 @@ class CreateRoomView(APIView):
         # 방 ID 생성
         room_id = get_random_string(12)
 
+        # 호스트 토큰(userId) 생성
+        host_token = str(uuid.uuid4())  # 하나의 랜덤 값을 생성해서 userId로 사용
+
         # Redis에 방 정보 저장
         room_info_key = f"room:{room_id}:info"
         redis_client.hset(room_info_key, "host_name", host_name)
-        host_token = get_random_string(32)
         redis_client.hset(room_info_key, "host_token", host_token)
         redis_client.expire(room_info_key, 3600)
 
-        # 참가자 목록 초기화
+        # 참가자 목록 초기화 (호스트 추가)
         participants_key = f"room:{room_id}:participants"
-        redis_client.lpush(participants_key, f"{host_name}:host:True")
+        redis_client.lpush(participants_key, f"{host_token}:{host_name}:True")
         redis_client.expire(participants_key, 3600)
 
         # 응답
         return Response({
             "room_id": room_id,
-            "user_token": host_token
+            "user_token": host_token  # 호스트의 토큰 (userId)
         }, status=status.HTTP_201_CREATED)
     
 
@@ -41,16 +44,14 @@ class GetGamesView(APIView):
         games = [
             {"id": "handGame", "name": "손병호 게임"},
             {"id": "imageGame", "name": "이미지 게임"},
-            {"id": "imageGame", "name": "이미지 게임"},
         ]
         return Response({"games": games}, status=status.HTTP_200_OK)
 
 class GetRoomInfoView(APIView):
     def get(self, request, room_id):
-        """방 정보와 선택된 게임 가져오기"""
+        """방 정보 가져오기"""
         room_info_key = f"room:{room_id}:info"
         participants_key = f"room:{room_id}:participants"
-        selected_game_key = f"room:{room_id}:selected_game"
 
         if not redis_client.exists(room_info_key):
             return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -69,10 +70,6 @@ class GetRoomInfoView(APIView):
             }
             for p in participants
         ]
-
-        # 선택된 게임 정보 가져오기
-        selected_game = redis_client.get(selected_game_key)
-        selected_game = selected_game.decode("utf-8") if selected_game else None
 
         return Response({
             "room_id": room_id,

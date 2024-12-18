@@ -13,13 +13,31 @@ class RoomConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
-        # Redis에서 참가자 정보 가져오기
-        participants = await self.get_participants()
+        # 호스트 정보가 없으면 새로 추가
+        host_info_key = f"room:{self.room_id}:info"
+        if not await self.get_host_token():
+            # Query 파라미터 또는 클라이언트 입력으로부터 host_name 받기
+            query_string = self.scope['query_string'].decode('utf-8')
+            host_name = self._parse_host_name(query_string)
+            print(f"Generated host_user_id: {host_user_id}, host_name: {host_name}")
+            
+            # 랜덤 userId 생성
+            host_user_id = str(uuid.uuid4())
 
+            # 호스트 정보 저장
+            redis_client.hset(host_info_key, "host_token", host_user_id)
+            redis_client.hset(host_info_key, "host_name", host_name)
+
+            # 참가자 목록에 호스트 추가
+            self.add_participant(host_name, host_user_id, True)
+
+        # 참가자 목록 전송
+        participants = await self.get_participants()
         await self.send(json.dumps({
             "type": "participants_update",
             "participants": participants
-        } , ensure_ascii=False))
+        }, ensure_ascii=False))
+
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
@@ -30,14 +48,11 @@ class RoomConsumer(AsyncWebsocketConsumer):
 
         if message_type == "join":
             nickname = data.get("nickname")
-            user_token = data.get("user_token")  # 클라이언트로부터 user_token을 받아옴
             user_id = str(uuid.uuid4())
             is_host = False
 
             # 참가자 추가
             await self.add_participant(nickname, user_id, is_host)
-            
-            
 
             # 참가자 목록 갱신
             participants = await self.get_participants()
@@ -56,7 +71,6 @@ class RoomConsumer(AsyncWebsocketConsumer):
             game_id = data.get("game_id")
             is_host = await self.is_host(data.get("user_token"))  # 호스트 여부 확인
             if is_host:
-                redis_client.set(f"room:{self.room_id}:selected_game", game_id)
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
@@ -80,9 +94,9 @@ class RoomConsumer(AsyncWebsocketConsumer):
 
     async def add_participant(self, nickname, user_id, is_host):
         participants_key = f"room:{self.room_id}:participants"
-        participant_data = f"{user_id}:{nickname}:{is_host}"
-        redis_client.lpush(participants_key, participant_data)
-        redis_client.expire(participants_key, 3600)  # 1시간 만료
+        redis_client.rpush(participants_key, f"{user_id}:{nickname}:{is_host}")
+        redis_client.expire(participants_key, 3600)
+
 
     async def get_participants(self):
         participants_key = f"room:{self.room_id}:participants"
@@ -107,25 +121,13 @@ class RoomConsumer(AsyncWebsocketConsumer):
         host_token = redis_client.hget(host_info_key, "host_token")
         return host_token.decode("utf-8") if host_token else None
     
-    async def send_participants_to_client(self):
-        participants_key = f"room:{self.room_id}:participants"
-        participants = redis_client.lrange(participants_key, 0, -1)
-        participants_data = [json.loads(p.decode("utf-8")) for p in participants]
-        
-        await self.send(json.dumps({
-            "type": "participants_data",
-            "participants": participants_data
-        }))
-    async def notify_handgame(self):
-        participants_key = f"room:{self.room_id}:participants"
-        participants = redis_client.lrange(participants_key, 0, -1)
-        participants_data = [json.loads(p.decode("utf-8")) for p in participants]
-
-        handgame_group_name = f"handgame_{self.room_id}"
-        await self.channel_layer.group_send(
-            handgame_group_name,
-            {
-                "type": "participants_update",
-                "participants": participants_data
-            }
-        )
+    def _parse_host_name(self, query_string):
+        """
+        Extract 'host_name' from the query string.
+        Example query_string: "host_name=John"
+        """
+        for param in query_string.split("&"):
+            key, value = param.split("=")
+            if key == "host_name":
+                return value
+        return "UnknownHost"  # 기본값
