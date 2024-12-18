@@ -47,9 +47,10 @@ class GetGamesView(APIView):
 
 class GetRoomInfoView(APIView):
     def get(self, request, room_id):
-        """방 정보 가져오기"""
+        """방 정보와 선택된 게임 가져오기"""
         room_info_key = f"room:{room_id}:info"
         participants_key = f"room:{room_id}:participants"
+        selected_game_key = f"room:{room_id}:selected_game"
 
         if not redis_client.exists(room_info_key):
             return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -69,8 +70,13 @@ class GetRoomInfoView(APIView):
             for p in participants
         ]
 
+        # 선택된 게임 정보 가져오기
+        selected_game = redis_client.get(selected_game_key)
+        selected_game = selected_game.decode("utf-8") if selected_game else None
+
         return Response({
             "room_id": room_id,
             "host_name": host_name.decode("utf-8") if host_name else None,
-            "participants": participants_data
+            "participants": participants_data,
+            "selected_game": selected_game
         }, status=status.HTTP_200_OK)
