@@ -36,8 +36,8 @@ application = ProtocolTypeRouter({
     "websocket": AuthMiddlewareStack(
         URLRouter(
             chat_websocket_urlpatterns +
-            room_websocket_urlpatterns +
-            handgame_websocket_urlpatterns
+            room_websocket_urlpatterns 
+            + handgame_websocket_urlpatterns
         )
     ),
 })
