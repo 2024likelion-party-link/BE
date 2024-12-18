@@ -1,5 +1,6 @@
 from http.cookies import SimpleCookie
 import random
+import time
 from django.urls import path
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.layers import get_channel_layer
@@ -52,7 +53,9 @@ class HandGameConsumer(AsyncWebsocketConsumer):
         elif message_type == "undo_fold":
             await self.handle_undo_fold(data)
         elif message_type == "chat":
-            await self.handle_chat(data)
+            await self.make_chat(data)
+        elif message_type == "chat_list":
+            await self.chat_list()
         elif message_type == "next_turn":
             await self.move_to_next_turn()
         elif message_type == "update_participants":
@@ -254,7 +257,7 @@ class HandGameConsumer(AsyncWebsocketConsumer):
         )
     
 
-    async def handle_chat(self, data):
+    async def make_chat(self, data):
         # HTTP 헤더에서 Cookie 가져오기
         headers = dict(self.scope["headers"])
         cookie_header = headers.get(b'cookie', b'').decode()
@@ -268,22 +271,46 @@ class HandGameConsumer(AsyncWebsocketConsumer):
             return
 
         message = data.get("message")
+        timestamp = time.time()
+
         if not message:
-            await self.send_error("Empty message.")
+            await self.send_error("Message cannot be empty.")
             return
 
-        # 채팅 메시지를 그룹에 전송
+        # Redis에 메시지 저장
+        message_data = {
+            "userId": user_id,
+            "message": message,
+            "timestamp": timestamp,
+        }
+        redis_client.rpush(f"room:{self.room_id}:messages", json.dumps(message_data))
+
+        # 그룹에 메시지 브로드캐스트
         await self.channel_layer.group_send(
             self.room_group_name,
-            {
-                "type": "chat_message",
-                "userId": user_id,
-                "message": message,
-            }
+            {"type": "new_chat", "message_data": message_data}
         )
 
-    async def chat_message(self, event):
-        user_id = event["userId"]
-        message = event["message"]
-        await self.send(json.dumps({"type": "chat", "userId": user_id, "message": message}, ensure_ascii=False))
+    # 메시지 목록 요청 처리
+    async def chat_list(self):
+        messages_key = f"room:{self.room_id}:messages"
+        messages = redis_client.lrange(messages_key, 0, -1)
 
+        # Redis에서 가져온 메시지 디코딩
+        decoded_messages = [
+            json.loads(message.decode("utf-8")) for message in messages
+        ]
+
+        # 클라이언트로 메시지 목록 전송
+        await self.send(json.dumps({
+            "type": "message_list",
+            "messages": decoded_messages
+        }, ensure_ascii=False))
+
+    # 새로운 메시지 이벤트 처리
+    async def new_chat(self, event):
+        message_data = event["message_data"]
+        await self.send(json.dumps({
+            "type": "new_message",
+            "message": message_data
+        }, ensure_ascii=False))
