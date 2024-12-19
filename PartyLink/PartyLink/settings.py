@@ -146,7 +146,7 @@ CHANNEL_LAYERS = {
 }
 
 # Redis 설정
-REDIS_HOST = 'localhost'  # Redis 서버의 호스트 (로컬에서 실행 중인 경우 localhost)
+REDIS_HOST = 'redis-server'  # Redis 서버의 호스트 (로컬에서 실행 중인 경우 localhost)
 REDIS_PORT = 6379         # Redis 기본 포트
 
 

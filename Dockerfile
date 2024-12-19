@@ -25,7 +25,7 @@ ENV DJANGO_SETTINGS_MODULE=PartyLink.settings
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV SECRET_KEY_FILE=/PartyLink/secret_key.json
-ENV REDIS_HOST redis
+ENV REDIS_HOST redis-server
 ENV REDIS_PORT 6379
 
 # Django 프로젝트가 필요로 하는 static 파일 모으기

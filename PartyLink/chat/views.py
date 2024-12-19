@@ -5,8 +5,9 @@ from .models import Message
 from .serializers import MessageSerializer
 from room.models import Room
 import redis
+import os
 
-redis_client = redis.StrictRedis(host="127.0.0.1", port=6379, db=0)
+redis_client = redis.StrictRedis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT', 6379)), password=os.getenv('REDIS_PASSWORD', None), db=0)
 
 class MessageView(APIView):
     def get(self, request, room_id):
