@@ -2,11 +2,13 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
 import redis
+import os
 
+redis_client = redis.StrictRedis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT', 6379)), password=os.getenv('REDIS_PASSWORD', None), db=0)
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        redis_client = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=0)  # 여기로 이동
+        # redis_client = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=0)  # 여기로 이동
         self.room_id = self.scope["url_route"]["kwargs"]["room_id"]
         self.room_group_name = f"room_{self.room_id}"
 
