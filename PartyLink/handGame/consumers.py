@@ -346,9 +346,23 @@ class HandGameConsumer(AsyncWebsocketConsumer):
             await self.send_error("Message cannot be empty.")
             return
 
+        # 참가자 목록 가져오기
+        participants = await self.get_participants()
+        
+        # 디버깅 출력
+        print(f"Participants: {participants}")
+        print(f"User ID from cookie: {user_id}")
+
+        nickname = next((p['nickname'] for p in participants if p['userId'] == user_id), None)
+
+        if not nickname:
+            await self.send_error("Nickname not found for user.")
+            return
+
         # Redis에 메시지 저장
         message_data = {
             "userId": user_id,
+            "nickname": nickname,
             "message": message,
             "timestamp": timestamp,
         }
