@@ -1,0 +1,22 @@
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowUserPushPull",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::637423301108:user/park_jiye"
+            },
+            "Action": [
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:BatchGetImage",
+                "ecr:PutImage",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload"
+            ]
+        }
+    ]
+}
+
