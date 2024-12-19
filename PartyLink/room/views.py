@@ -36,7 +36,8 @@ class CreateRoomView(APIView):
         # 응답
         return Response({
             "room_id": room_id,
-            "user_token": host_token  # 호스트의 토큰 (userId)
+            "user_token": host_token,  # 호스트의 토큰 (userId)
+            "is_host": True
         }, status=status.HTTP_201_CREATED)
     
 

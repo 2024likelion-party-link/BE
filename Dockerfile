@@ -32,4 +32,4 @@ ENV REDIS_PORT 6379
 RUN python manage.py collectstatic --noinput
 
 # 컨테이너 실행 시 명령어
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "PartyLink.asgi:application"]
