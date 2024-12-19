@@ -7,6 +7,8 @@ WORKDIR /PartyLink
 # 필요 파일들을 복사
 COPY requirements.txt .
 
+COPY Dockerfile /app/Dockerfile
+
 # 필요한 패키지 설치 (필요한 경우, Linux 패키지 포함)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc && \

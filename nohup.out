@@ -1,0 +1,3 @@
+a82cea9156e828530e48a1c512b52de807cbbb9b32b6c9680f5b684bf6fda915
+docker: Error response from daemon: Conflict. The container name "/deploydrf" is already in use by container "a82cea9156e828530e48a1c512b52de807cbbb9b32b6c9680f5b684bf6fda915". You have to remove (or rename) that container to be able to reuse that name.
+See 'docker run --help'.
