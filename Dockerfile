@@ -7,6 +7,8 @@ WORKDIR /PartyLink
 # 필요 파일들을 복사
 COPY requirements.txt .
 
+COPY Dockerfile /app/Dockerfile
+
 # 필요한 패키지 설치 (필요한 경우, Linux 패키지 포함)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc && \
@@ -23,6 +25,8 @@ ENV DJANGO_SETTINGS_MODULE=PartyLink.settings
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV SECRET_KEY_FILE=/PartyLink/secret_key.json
+ENV REDIS_HOST redis
+ENV REDIS_PORT 6379
 
 # Django 프로젝트가 필요로 하는 static 파일 모으기
 RUN python manage.py collectstatic --noinput

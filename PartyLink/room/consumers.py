@@ -2,9 +2,10 @@ import json
 import uuid
 from channels.generic.websocket import AsyncWebsocketConsumer
 import redis
+import os
 
 # Redis 설정
-redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
+redis_client = redis.StrictRedis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT', 6379)), password=os.getenv('REDIS_PASSWORD', None), db=0)
 
 class RoomConsumer(AsyncWebsocketConsumer):
     async def connect(self):
